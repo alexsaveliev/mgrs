@@ -58,8 +58,20 @@
       36T  VS   123000   123000
       38S MB 12345 67890
     */
+    // Латинські літери та візуально схожі кириличні символи.
     const mgrsRegex =
-      /\b\d{1,2}\s*[C-HJ-NP-X]\s*[A-HJ-NP-Z]\s*[A-HJ-NP-Z](?:\s*\d{1,10}){2}\b/gi;
+      /(?<![\p{L}\p{N}])\d{1,2}\s*[C-HJ-NP-XСЕНКМТВХАОРУІЈЅ]\s*[A-HJ-NP-ZАВЕСЕНКМОРТХУІЈЅ]\s*[A-HJ-NP-ZАВЕСЕНКМОРТХУІЈЅ](?:\s*\d{1,10}){2}(?![\p{L}\p{N}])/giu;
+
+    const cyrillicToLatin = {
+      "А": "A", "В": "B", "С": "C", "Е": "E", "Н": "H",
+      "І": "I", "Ј": "J", "К": "K", "М": "M", "О": "O",
+      "Р": "P", "Ѕ": "S", "Т": "T", "У": "Y", "Х": "X"
+    };
+
+    function normalizeMgrs(coord) {
+      return coord.replace(/\s+/g, "").toUpperCase()
+        .replace(/[АВСЕНІЈКМОРЅТУХ]/g, char => cyrillicToLatin[char]);
+    }
 
     function updateMap() {
       markersLayer.clearLayers();
@@ -71,7 +83,7 @@
       const bounds = [];
 
       matches.forEach(rawCoord => {
-        const normalizedCoord = rawCoord.replace(/\s+/g, "").toUpperCase();
+        const normalizedCoord = normalizeMgrs(rawCoord);
 
         try {
           const [lon, lat] = mgrs.toPoint(normalizedCoord);
