@@ -59,8 +59,9 @@
       38S MB 12345 67890
     */
     // Латинські літери та візуально схожі кириличні символи.
+    // Шукаємо вже нормалізовані координати, зберігаючи довжину тексту.
     const mgrsRegex =
-      /(?<![\p{L}\p{N}])\d{1,2}\s*[C-HJ-NP-XСЕНКМТВХАОРУІЈЅ]\s*[A-HJ-NP-ZАВЕСЕНКМОРТХУІЈЅ]\s*[A-HJ-NP-ZАВЕСЕНКМОРТХУІЈЅ](?:\s*\d{1,10}){2}(?![\p{L}\p{N}])/giu;
+      /(?<![A-Za-z0-9])\d{1,2}\s*[C-HJ-NP-X]\s*[A-HJ-NP-Z]\s*[A-HJ-NP-Z](?:\s*\d{1,10}){2}(?![A-Za-z0-9])/gi;
 
     const cyrillicToLatin = {
       "А": "A", "В": "B", "С": "C", "Е": "E", "Н": "H",
@@ -68,22 +69,27 @@
       "Р": "P", "Ѕ": "S", "Т": "T", "У": "Y", "Х": "X"
     };
 
+    function latinize(text) {
+      return text.replace(/[АВСЕНІЈКМОРЅТУХавсенікморѕтухј]/g,
+        char => cyrillicToLatin[char.toUpperCase()] || char);
+    }
+
     function normalizeMgrs(coord) {
-      return coord.replace(/\s+/g, "").toUpperCase()
-        .replace(/[АВСЕНІЈКМОРЅТУХ]/g, char => cyrillicToLatin[char]);
+      return latinize(coord).replace(/\s+/g, "").toUpperCase();
     }
 
     function updateMap() {
       markersLayer.clearLayers();
 
       const text = textArea.value;
-      const matches = text.match(mgrsRegex) || [];
+      const matches = [...latinize(text).matchAll(mgrsRegex)];
 
       let validCount = 0;
       const bounds = [];
 
-      matches.forEach(rawCoord => {
-        const normalizedCoord = normalizeMgrs(rawCoord);
+      matches.forEach(match => {
+        const rawCoord = text.slice(match.index, match.index + match[0].length);
+        const normalizedCoord = normalizeMgrs(match[0]);
 
         try {
           const [lon, lat] = mgrs.toPoint(normalizedCoord);
